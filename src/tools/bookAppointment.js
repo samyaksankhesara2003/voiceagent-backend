@@ -2,8 +2,10 @@ const Availability = require('../models/Availability');
 const Patient = require('../models/Patient');
 const Appointment = require('../models/Appointment');
 const Doctor = require('../models/Doctor');
+const CalendarEvent = require('../models/CalendarEvent');
 const calendarMock = require('../services/mock/calendar.mock');
 const crmMock = require('../services/mock/crm.mock');
+const googleCalendar = require('../services/googleCalendar.service');
 const knex = require('../config/database');
 
 async function bookAppointment(params, call) {
@@ -49,6 +51,17 @@ async function bookAppointment(params, call) {
     // Mock integrations
     await calendarMock.createEvent(appointment, patient, trx);
     await crmMock.createLead(patient, appointment, call?.id, trx);
+
+    // Real Google Calendar integration (non-blocking)
+    if (googleCalendar.isConfigured()) {
+      const doctor = await Doctor.query(trx).findById(slot.doctor_id);
+      const gcResult = await googleCalendar.createGoogleCalendarEvent(appointment, patient, doctor);
+      if (gcResult) {
+        await CalendarEvent.query(trx)
+          .where({ appointment_id: appointment.id })
+          .patch({ external_event_id: gcResult.googleEventId });
+      }
+    }
 
     return { appointment, patient };
   });

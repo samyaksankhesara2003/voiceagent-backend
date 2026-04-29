@@ -8,6 +8,7 @@ const webhookRoutes = require('./routes/webhook.routes');
 const doctorRoutes = require('./routes/doctor.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const crmLeadRoutes = require('./routes/crmLead.routes');
+const testRoutes = require('./routes/test.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,6 +22,7 @@ app.use('/api/webhook', webhookRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/crm-leads', crmLeadRoutes);
+app.use('/api/test', testRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
