@@ -43,4 +43,17 @@ async function getAppointmentByCallId(req, res) {
   }
 }
 
-module.exports = { getAppointment, getAppointmentByCallId };
+async function listAppointments(req, res) {
+  try {
+    const appointments = await Appointment.query()
+      .withGraphFetched('[doctor, patient]')
+      .orderBy('created_at', 'desc');
+
+    res.json({ appointments });
+  } catch (error) {
+    console.error('Error listing appointments:', error);
+    res.status(500).json({ error: 'Failed to list appointments' });
+  }
+}
+
+module.exports = { getAppointment, getAppointmentByCallId, listAppointments };
