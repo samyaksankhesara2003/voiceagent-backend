@@ -22,15 +22,22 @@ async function createGoogleCalendarEvent(appointment, patient, doctor) {
     const calendar = google.calendar({ version: 'v3', auth });
 
     // Format date — MySQL may return a Date object or string
+    // Use local date methods to avoid UTC timezone shift (IST → UTC can change the date)
     let dateStr = appointment.date;
     if (dateStr instanceof Date) {
-      dateStr = dateStr.toISOString().split('T')[0];
+      const y = dateStr.getFullYear();
+      const m = String(dateStr.getMonth() + 1).padStart(2, '0');
+      const d = String(dateStr.getDate()).padStart(2, '0');
+      dateStr = `${y}-${m}-${d}`;
     } else if (typeof dateStr === 'string' && dateStr.includes('T')) {
       dateStr = dateStr.split('T')[0];
     }
 
-    const startDateTime = `${dateStr}T${appointment.start_time}`;
-    const endDateTime = `${dateStr}T${appointment.end_time}`;
+    // Ensure time has seconds (HH:MM -> HH:MM:SS)
+    const ensureSeconds = (t) => t && t.split(':').length === 2 ? `${t}:00` : t;
+
+    const startDateTime = `${dateStr}T${ensureSeconds(appointment.start_time)}`;
+    const endDateTime = `${dateStr}T${ensureSeconds(appointment.end_time)}`;
 
     console.log('Google Calendar: creating event', { startDateTime, endDateTime });
 
