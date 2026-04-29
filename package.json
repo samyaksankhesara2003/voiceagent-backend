@@ -1,0 +1,27 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "migrate": "knex migrate:latest --knexfile src/knexfile.js",
+    "migrate:rollback": "knex migrate:rollback --knexfile src/knexfile.js",
+    "seed": "knex seed:run --knexfile src/knexfile.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "knex": "^3.2.9",
+    "mysql2": "^3.22.3",
+    "objection": "^3.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
