@@ -76,4 +76,24 @@ async function createGoogleCalendarEvent(appointment, patient, doctor) {
   }
 }
 
-module.exports = { isConfigured, createGoogleCalendarEvent };
+async function deleteGoogleCalendarEvent(googleEventId) {
+  if (!isConfigured() || !googleEventId) return false;
+
+  try {
+    const auth = getAuthClient();
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    await calendar.events.delete({
+      calendarId: 'primary',
+      eventId: googleEventId,
+    });
+
+    console.log('Google Calendar event deleted:', googleEventId);
+    return true;
+  } catch (err) {
+    console.error('Google Calendar delete error (non-blocking):', err.message);
+    return false;
+  }
+}
+
+module.exports = { isConfigured, createGoogleCalendarEvent, deleteGoogleCalendarEvent };

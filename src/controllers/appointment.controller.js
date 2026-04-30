@@ -1,4 +1,11 @@
 const Appointment = require('../models/Appointment');
+const Availability = require('../models/Availability');
+const IntakeRecord = require('../models/IntakeRecord');
+const CalendarEvent = require('../models/CalendarEvent');
+const EhrRecord = require('../models/EhrRecord');
+const CrmLead = require('../models/CrmLead');
+const googleCalendar = require('../services/googleCalendar.service');
+const knex = require('../config/database');
 
 async function getAppointment(req, res) {
   try {
@@ -56,4 +63,48 @@ async function listAppointments(req, res) {
   }
 }
 
-module.exports = { getAppointment, getAppointmentByCallId, listAppointments };
+async function deleteAppointment(req, res) {
+  const { id } = req.params;
+
+  try {
+    const appointment = await Appointment.query()
+      .findById(parseInt(id))
+      .withGraphFetched('[calendarEvent]');
+
+    if (!appointment) {
+      return res.status(404).json({ error: 'Appointment not found' });
+    }
+
+    await knex.transaction(async (trx) => {
+      // 1. Delete Google Calendar event if exists
+      if (appointment.calendarEvent?.external_event_id) {
+        await googleCalendar.deleteGoogleCalendarEvent(appointment.calendarEvent.external_event_id);
+      }
+
+      // 2. Delete related records
+      await CalendarEvent.query(trx).delete().where('appointment_id', id);
+      await IntakeRecord.query(trx).delete().where('appointment_id', id);
+      await EhrRecord.query(trx).delete().where('appointment_id', id);
+      await CrmLead.query(trx).delete().where('vapi_call_id', appointment.vapi_call_id);
+
+      // 3. Free the availability slot
+      await Availability.query(trx)
+        .where({
+          doctor_id: appointment.doctor_id,
+          date: appointment.date,
+          start_time: appointment.start_time,
+        })
+        .patch({ is_booked: false });
+
+      // 4. Delete the appointment
+      await Appointment.query(trx).deleteById(parseInt(id));
+    });
+
+    res.json({ success: true, message: 'Appointment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    res.status(500).json({ error: 'Failed to delete appointment' });
+  }
+}
+
+module.exports = { getAppointment, getAppointmentByCallId, listAppointments, deleteAppointment };
